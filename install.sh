@@ -743,6 +743,8 @@ connect_agent_claude() {
 
 disconnect_agent_claude() {
   # Global (user scope)
+  local had_global=false
+  _json_has_key "$HOME/.claude.json" "mcpServers.mcp-db-results-anonymizer" && had_global=true
   if command -v claude &>/dev/null; then
     claude mcp remove mcp-db-results-anonymizer -s user 2>/dev/null || true
     claude mcp remove mcp-db-results-anonymizer -s project 2>/dev/null || true
@@ -750,13 +752,16 @@ disconnect_agent_claude() {
   if _json_has_key "$HOME/.claude.json" "mcpServers.mcp-db-results-anonymizer"; then
     _json_remove_key "$HOME/.claude.json" "mcpServers.mcp-db-results-anonymizer"
   fi
+  $had_global && success "MCP removed from ~/.claude.json."
   # Local .mcp.json (infra dir)
   if [ -n "$INSTALL_DIR" ] && [ -f "$INSTALL_DIR/.mcp.json" ]; then
     rm -f "$INSTALL_DIR/.mcp.json"
+    success "Local MCP config removed ($INSTALL_DIR/.mcp.json)."
   fi
   # Local .mcp.json (source repo dir)
   if [ -f "$SCRIPT_DIR/.mcp.json" ] && grep -q "mcp-db-results-anonymizer" "$SCRIPT_DIR/.mcp.json" 2>/dev/null; then
     rm -f "$SCRIPT_DIR/.mcp.json"
+    success "Local MCP config removed ($SCRIPT_DIR/.mcp.json)."
   fi
   # Hooks
   if [ -f "$INSTALL_DIR/scripts/uninstall-hooks.sh" ]; then
@@ -834,17 +839,20 @@ EOF
 
 disconnect_agent_codex() {
   # Global
-  command -v codex >/dev/null 2>&1 && codex mcp remove mcp-db-results-anonymizer >/dev/null 2>&1 || true
   local toml="$HOME/.codex/config.toml"
+  local had_mcp=false
+  [ -f "$toml" ] && grep -q "mcp-db-results-anonymizer" "$toml" 2>/dev/null && had_mcp=true
+  command -v codex >/dev/null 2>&1 && codex mcp remove mcp-db-results-anonymizer >/dev/null 2>&1 || true
+  $had_mcp && success "MCP server removed from ~/.codex/config.toml."
   if [ -f "$toml" ] && grep -q "security-hook.sh" "$toml" 2>/dev/null; then
     _toml_remove_block "$toml" '\[\[hooks\.PreToolUse\]\]' "security-hook.sh"
-    info "Codex security hook removed from $toml."
+    success "Security hook removed from $toml."
   fi
   # Local
   if [ -n "$INSTALL_DIR" ] && [ -f "$INSTALL_DIR/.codex/config.toml" ]; then
     rm -f "$INSTALL_DIR/.codex/config.toml"
     rmdir "$INSTALL_DIR/.codex" 2>/dev/null || true
-    info "Local Codex config removed."
+    success "Local Codex config removed."
   fi
 }
 
@@ -925,16 +933,30 @@ disconnect_agent_opencode() {
   local cfg
   # Global
   for cfg in "$HOME/.config/opencode/opencode.json" "$HOME/.config/opencode/opencode.jsonc"; do
-    _json_remove_key "$cfg" "mcp.mcp-db-results-anonymizer" strip_comments
+    if [ -f "$cfg" ] && grep -q "mcp-db-results-anonymizer" "$cfg" 2>/dev/null; then
+      _json_remove_key "$cfg" "mcp.mcp-db-results-anonymizer" strip_comments
+      success "MCP removed from $cfg."
+    fi
   done
-  rm -f "$HOME/.config/opencode/plugins/mcp-db-anonymizer-guard.js"
+  if [ -f "$HOME/.config/opencode/plugins/mcp-db-anonymizer-guard.js" ]; then
+    rm -f "$HOME/.config/opencode/plugins/mcp-db-anonymizer-guard.js"
+    success "Security plugin removed."
+  fi
   rm -f "$HOME/.config/opencode/plugin/mcp-db-anonymizer-guard.js"
   # Local
   if [ -n "$INSTALL_DIR" ]; then
+    local removed_local=false
     for cfg in "$INSTALL_DIR/opencode.json" "$INSTALL_DIR/opencode.jsonc"; do
-      _json_remove_key "$cfg" "mcp.mcp-db-results-anonymizer" strip_comments
+      if [ -f "$cfg" ] && grep -q "mcp-db-results-anonymizer" "$cfg" 2>/dev/null; then
+        _json_remove_key "$cfg" "mcp.mcp-db-results-anonymizer" strip_comments
+        removed_local=true
+      fi
     done
-    rm -f "$INSTALL_DIR/.opencode/plugins/mcp-db-anonymizer-guard.js"
+    if [ -f "$INSTALL_DIR/.opencode/plugins/mcp-db-anonymizer-guard.js" ]; then
+      rm -f "$INSTALL_DIR/.opencode/plugins/mcp-db-anonymizer-guard.js"
+      removed_local=true
+    fi
+    $removed_local && success "Local OpenCode config removed."
   fi
 }
 
@@ -983,12 +1005,21 @@ connect_agent_cursor() {
 
 disconnect_agent_cursor() {
   # Global
-  _json_remove_key "$HOME/.cursor/mcp.json" "mcpServers.mcp-db-results-anonymizer"
-  _json_remove_from_array "$HOME/.cursor/hooks.json" "hooks.preToolUse" "command" "security-hook.sh"
+  if [ -f "$HOME/.cursor/mcp.json" ] && grep -q "mcp-db-results-anonymizer" "$HOME/.cursor/mcp.json" 2>/dev/null; then
+    _json_remove_key "$HOME/.cursor/mcp.json" "mcpServers.mcp-db-results-anonymizer"
+    success "MCP removed from ~/.cursor/mcp.json."
+  fi
+  if [ -f "$HOME/.cursor/hooks.json" ] && grep -q "security-hook.sh" "$HOME/.cursor/hooks.json" 2>/dev/null; then
+    _json_remove_from_array "$HOME/.cursor/hooks.json" "hooks.preToolUse" "command" "security-hook.sh"
+    success "preToolUse hook removed from ~/.cursor/hooks.json."
+  fi
   # Local
   if [ -n "$INSTALL_DIR" ]; then
-    rm -f "$INSTALL_DIR/.cursor/mcp.json" "$INSTALL_DIR/.cursor/hooks.json"
-    rmdir "$INSTALL_DIR/.cursor" 2>/dev/null || true
+    if [ -f "$INSTALL_DIR/.cursor/mcp.json" ] || [ -f "$INSTALL_DIR/.cursor/hooks.json" ]; then
+      rm -f "$INSTALL_DIR/.cursor/mcp.json" "$INSTALL_DIR/.cursor/hooks.json"
+      rmdir "$INSTALL_DIR/.cursor" 2>/dev/null || true
+      success "Local Cursor config removed."
+    fi
   fi
 }
 

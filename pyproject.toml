@@ -1,6 +1,6 @@
 [project]
 name = "mcp-db-results-anonymizer"
-version = "1.0.0"
+version = "1.0.1"
 description = "MCP server that anonymizes PII from database queries before AI agents see the results"
 requires-python = ">=3.11"
 dependencies = [
