@@ -1,0 +1,31 @@
+# Credentials & config (externalisés dans ~/.mcp-db-results-anonymizer/)
+.env
+config.yaml
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# Build
+dist/
+build/
+
+# Tests
+.pytest_cache/
+
+# Données locales (volumes Docker, dumps, mappings)
+data/
+db-backup/
+*.db
+.db-anonymized/
+
+# MCP config (généré par le Makefile, contient la clé API en clair)
+.mcp.json
+
+# Lock file (géré par uv, peut être versionné si souhaité)
+uv.lock
+
+# Docs générées
+ARCHITECTURE.md

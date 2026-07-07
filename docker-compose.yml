@@ -1,0 +1,30 @@
+services:
+  mcp-server:
+    build: .
+    container_name: mcp_anonymizer
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - mcp-db-results-anonymizer-network
+    environment:
+      # "sse" also serves /mcp (streamable-http) in parallel — see src/server.py:main()
+      - MCP_TRANSPORT=sse
+      - MCP_PORT=8080
+      - MCP_HOST=0.0.0.0
+      - MCP_ANON_CONFIG=/app/config.yaml
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - MONGODB_USER=${MONGODB_USER:-}
+      - MONGODB_PASSWORD=${MONGODB_PASSWORD:-}
+      - MYSQL_USER=${MYSQL_USER:-}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-}
+      - MSSQL_USER=${MSSQL_USER:-}
+      - MSSQL_PASSWORD=${MSSQL_PASSWORD:-}
+      - MCP_API_KEY=${MCP_API_KEY:-}
+    volumes:
+      - ~/.mcp-db-results-anonymizer/config.yaml:/app/config.yaml:ro
+    restart: unless-stopped
+
+networks:
+  mcp-db-results-anonymizer-network:
+    external: true

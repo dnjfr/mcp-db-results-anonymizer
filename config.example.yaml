@@ -1,0 +1,189 @@
+databases: {}
+
+  # PostgreSQL
+  # ma_base:
+  #   type: postgresql
+  #   host: ${PG_HOST:-mcp_postgres}
+  #   port: ${PG_PORT:-5432}
+  #   user: ${POSTGRES_USER}
+  #   password: ${POSTGRES_PASSWORD}
+  #   database: ma_base
+
+  # MongoDB
+  # ma_collection:
+  #   type: mongodb
+  #   host: ${MONGO_HOST:-mcp_mongo}
+  #   port: ${MONGO_PORT:-27017}
+  #   user: ${MONGODB_USER}
+  #   password: ${MONGODB_PASSWORD}
+  #   database: ma_collection
+  #   auth_database: admin
+
+  # MySQL
+  # ma_base_mysql:
+  #   type: mysql
+  #   host: localhost
+  #   port: 3306
+  #   user: ${MYSQL_USER}
+  #   password: ${MYSQL_PASSWORD}
+  #   database: ma_base_mysql
+
+  # SQL Server
+  # ma_base_mssql:
+  #   type: mssql
+  #   host: localhost
+  #   port: 1433
+  #   user: ${MSSQL_USER}
+  #   password: ${MSSQL_PASSWORD}
+  #   database: ma_base_mssql
+  #   driver: "ODBC Driver 18 for SQL Server"
+
+detection:
+  column_patterns:
+    FIRST_NAME:
+      - "first_name*"
+      - "firstname*"
+      - "prenom"
+    LAST_NAME:
+      - "last_name*"
+      - "lastname*"
+      - "nom_famille"
+    PERSON:
+      - "*name*"
+      - "nom"
+    EMAIL:
+      - "*email*"
+      - "*mail*"
+      - "courriel"
+    PHONE:
+      - "*phone*"
+      - "*tel*"
+      - "*mobile*"
+      - "*fax*"
+      - "telephone"
+    ADDRESS:
+      - "*address*"
+      - "*addr*"
+      - "*street*"
+      - "*zip*"
+      - "*postal*"
+    CITY:
+      - "*city*"
+      - "*ville*"
+    COUNTRY:
+      - "*country*"
+      - "*pays*"
+    CREDENTIAL:
+      - "*password*"
+      - "*passwd*"
+      - "*username*"
+      - "*secret*"
+      - "*token*"
+    SSN:
+      - "*ssn*"
+      - "*social_security*"
+      - "*num_secu*"
+    FINANCIAL:
+      - "*iban*"
+      - "*credit_card*"
+      - "*card_number*"
+      - "*cvc*"
+    IP:
+      - "*ip_address*"
+      - "*ip_addr*"
+    GEO:
+      - "*latitude*"
+      - "*longitude*"
+      - "*geo_*"
+    URL:
+      - "*_url"
+      - "*profile_url*"
+      - "*avatar*"
+      - "*website*"
+    DATE_OF_BIRTH:
+      - "*birth*"
+      - "*dob*"
+      - "*naissance*"
+    SALARY:
+      - "*salary*"
+      - "*salaire*"
+      - "*wage*"
+      - "*compensation*"
+      - "*remuneration*"
+    REVENUE:
+      - "*revenue*"
+      - "*chiffre_affaires*"
+      - "*margin*"
+      - "*marge*"
+      - "*profit*"
+      - "*benefice*"
+      - "*turnover*"
+    SCORE:
+      - "*_score*"
+      - "*credit_score*"
+      - "*fraud_score*"
+      - "*risk_score*"
+      - "*credit_rating*"
+      - "*risk_rating*"
+      - "*note_*"
+    PRICE:
+      - "*unit_price*"
+      - "*prix*"
+      - "*discount_rate*"
+      - "*taux_*"
+    SIRET:
+      - "*siret*"
+    SIREN:
+      - "*siren*"
+
+  sensitivity:
+    # confidential: colonnes anonymisées par perturbation numérique (±15%)
+    #   - salary
+    #   - margin
+    # secret: colonnes complètement masquées → [REDACTED]
+    #   - password_hash
+    #   - api_key
+    # public: colonnes jamais anonymisées, même si détectées comme PII
+    #   - id
+    #   - created_at
+
+  value_scan:
+    enabled: true
+    sample_size: 50
+
+  free_text:
+    default_strategy: redact
+
+  overrides: {}
+  # Forcer ou exclure des colonnes spécifiques :
+  #   title: SAFE           # ne jamais anonymiser cette colonne
+  #   secret_col: SECRET    # toujours masquer cette colonne
+
+anonymization:
+  strategy: pseudonymize
+  locale: "fr_FR"
+
+storage:
+  path: .db-anonymized/mappings.db
+  mode: ephemeral       # ephemeral = purge après chaque requête | session = cohérence inter-requêtes avec TTL
+  ttl_minutes: 30       # durée d'inactivité avant purge auto (ignoré en mode ephemeral)
+
+security:
+  read_only: true
+  max_rows: 100
+  blocked_tables:
+    - pg_shadow
+    - pg_authid
+    - pg_roles
+    - pg_stat_activity
+  blocked_functions:
+    - pg_read_file
+    - pg_read_binary_file
+    - lo_import
+    - lo_export
+    - pg_execute_server_program
+    - dblink
+  scan_error_messages: true
+
+mongodb:
+  schema_sample_size: 100
